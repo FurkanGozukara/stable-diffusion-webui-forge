@@ -423,12 +423,7 @@ def prepare_environment():
 
     startup_timer.record("clone repositores")
 
-    if not os.path.isfile(requirements_file_for_npu):
-        requirements_file_for_npu = os.path.join(script_path, requirements_file_for_npu)
-
-    if args.use_npu and not requirements_met(requirements_file_for_npu):
-        run_pip(f"install -r \"{requirements_file_for_npu}\"", "requirements_for_npu")
-        startup_timer.record("install requirements_for_npu")
+    # NPU requirements handling removed - not properly configured
 
     if not args.skip_install:
         run_extensions_installers(settings_file=args.ui_settings_file)
