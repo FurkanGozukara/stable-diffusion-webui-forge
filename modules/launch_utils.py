@@ -361,34 +361,8 @@ def requirements_met(requirements_file):
 
 
 def prepare_environment():
-    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu121")
-    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.3.1 torchvision==0.18.1 --extra-index-url {torch_index_url}")
-    if args.use_ipex:
-        if platform.system() == "Windows":
-            # The "Nuullll/intel-extension-for-pytorch" wheels were built from IPEX source for Intel Arc GPU: https://github.com/intel/intel-extension-for-pytorch/tree/xpu-main
-            # This is NOT an Intel official release so please use it at your own risk!!
-            # See https://github.com/Nuullll/intel-extension-for-pytorch/releases/tag/v2.0.110%2Bxpu-master%2Bdll-bundle for details.
-            #
-            # Strengths (over official IPEX 2.0.110 windows release):
-            #   - AOT build (for Arc GPU only) to eliminate JIT compilation overhead: https://github.com/intel/intel-extension-for-pytorch/issues/399
-            #   - Bundles minimal oneAPI 2023.2 dependencies into the python wheels, so users don't need to install oneAPI for the whole system.
-            #   - Provides a compatible torchvision wheel: https://github.com/intel/intel-extension-for-pytorch/issues/465
-            # Limitation:
-            #   - Only works for python 3.10
-            url_prefix = "https://github.com/Nuullll/intel-extension-for-pytorch/releases/download/v2.0.110%2Bxpu-master%2Bdll-bundle"
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install {url_prefix}/torch-2.0.0a0+gite9ebda2-cp310-cp310-win_amd64.whl {url_prefix}/torchvision-0.15.2a0+fa99a53-cp310-cp310-win_amd64.whl {url_prefix}/intel_extension_for_pytorch-2.0.110+gitc6ea20b-cp310-cp310-win_amd64.whl")
-        else:
-            # Using official IPEX release for linux since it's already an AOT build.
-            # However, users still have to install oneAPI toolkit and activate oneAPI environment manually.
-            # See https://intel.github.io/intel-extension-for-pytorch/index.html#installation for details.
-            torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/")
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.0.0a0 intel-extension-for-pytorch==2.0.110+gitba7f6c1 --extra-index-url {torch_index_url}")
     requirements_file = os.environ.get('REQS_FILE', "requirements_versions.txt")
     requirements_file_for_npu = os.environ.get('REQS_FILE_FOR_NPU', "requirements_npu.txt")
-
-    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.27')
-    clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
-    openclip_package = os.environ.get('OPENCLIP_PACKAGE', "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
 
     assets_repo = os.environ.get('ASSETS_REPO', "https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets.git")
     # stable_diffusion_repo = os.environ.get('STABLE_DIFFUSION_REPO', "https://github.com/Stability-AI/stablediffusion.git")
@@ -424,9 +398,7 @@ def prepare_environment():
     print(f"Version: {tag}")
     print(f"Commit hash: {commit}")
 
-    if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
-        run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
-        startup_timer.record("install torch")
+    # Torch installation is now handled by requirements_versions.txt
 
     if args.use_ipex:
         args.skip_torch_cuda_test = True
@@ -439,21 +411,7 @@ def prepare_environment():
         )
     startup_timer.record("torch GPU test")
 
-    if not is_installed("clip"):
-        run_pip(f"install {clip_package}", "clip")
-        startup_timer.record("install clip")
-
-    if not is_installed("open_clip"):
-        run_pip(f"install {openclip_package}", "open_clip")
-        startup_timer.record("install open_clip")
-
-    if (not is_installed("xformers") or args.reinstall_xformers) and args.xformers:
-        run_pip(f"install -U -I --no-deps {xformers_package}", "xformers")
-        startup_timer.record("install xformers")
-
-    if not is_installed("ngrok") and args.ngrok:
-        run_pip("install ngrok", "ngrok")
-        startup_timer.record("install ngrok")
+    # All package installations are now handled by requirements_versions.txt
 
     os.makedirs(os.path.join(script_path, dir_repos), exist_ok=True)
 
@@ -476,7 +434,7 @@ def prepare_environment():
     if not os.path.isfile(requirements_file_for_npu):
         requirements_file_for_npu = os.path.join(script_path, requirements_file_for_npu)
 
-    if "torch_npu" in torch_command and not requirements_met(requirements_file_for_npu):
+    if args.use_npu and not requirements_met(requirements_file_for_npu):
         run_pip(f"install -r \"{requirements_file_for_npu}\"", "requirements_for_npu")
         startup_timer.record("install requirements_for_npu")
 
