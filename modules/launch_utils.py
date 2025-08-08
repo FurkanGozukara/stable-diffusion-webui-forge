@@ -406,10 +406,10 @@ def prepare_environment():
     try:
         import packaging.version
     except ImportError:
-        run_pip("install packaging", "packaging")
+        run_pip("install packaging", "packaging", live=True)
 
     if not requirements_met(requirements_file):
-        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        run_pip(f"install -r \"{requirements_file}\"", "requirements", live=True)
         startup_timer.record("install requirements")
 
     os.makedirs(os.path.join(script_path, dir_repos), exist_ok=True)
