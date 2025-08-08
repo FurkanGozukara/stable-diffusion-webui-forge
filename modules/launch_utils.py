@@ -402,6 +402,12 @@ def prepare_environment():
     if not os.path.isfile(requirements_file):
         requirements_file = os.path.join(script_path, requirements_file)
 
+    # Install packaging first if not available
+    try:
+        import packaging.version
+    except ImportError:
+        run_pip("install packaging", "packaging")
+
     if not requirements_met(requirements_file):
         run_pip(f"install -r \"{requirements_file}\"", "requirements")
         startup_timer.record("install requirements")
