@@ -398,20 +398,13 @@ def prepare_environment():
     print(f"Version: {tag}")
     print(f"Commit hash: {commit}")
 
-    # Torch installation is now handled by requirements_versions.txt
+    # Install requirements first before any checks
+    if not os.path.isfile(requirements_file):
+        requirements_file = os.path.join(script_path, requirements_file)
 
-    if args.use_ipex:
-        args.skip_torch_cuda_test = True
-    if not args.skip_torch_cuda_test and not check_run_python("import torch; assert torch.cuda.is_available()"):
-        raise RuntimeError(
-            'Your device does not support the current version of Torch/CUDA! Consider download another version: \n'
-            'https://github.com/lllyasviel/stable-diffusion-webui-forge/releases/tag/latest'
-            # 'Torch is not able to use GPU; '
-            # 'add --skip-torch-cuda-test to COMMANDLINE_ARGS variable to disable this check'
-        )
-    startup_timer.record("torch GPU test")
-
-    # All package installations are now handled by requirements_versions.txt
+    if not requirements_met(requirements_file):
+        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        startup_timer.record("install requirements")
 
     os.makedirs(os.path.join(script_path, dir_repos), exist_ok=True)
 
@@ -423,13 +416,6 @@ def prepare_environment():
     git_clone(blip_repo, repo_dir('BLIP'), "BLIP", blip_commit_hash)
 
     startup_timer.record("clone repositores")
-
-    if not os.path.isfile(requirements_file):
-        requirements_file = os.path.join(script_path, requirements_file)
-
-    if not requirements_met(requirements_file):
-        run_pip(f"install -r \"{requirements_file}\"", "requirements")
-        startup_timer.record("install requirements")
 
     if not os.path.isfile(requirements_file_for_npu):
         requirements_file_for_npu = os.path.join(script_path, requirements_file_for_npu)
