@@ -66,3 +66,4 @@ peft==0.13.2
 pydantic==2.10.6
 huggingface-hub==0.26.2
 ngrok
+joblib
