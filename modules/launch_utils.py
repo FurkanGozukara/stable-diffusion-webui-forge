@@ -408,6 +408,13 @@ def prepare_environment():
     except ImportError:
         run_pip("install packaging", "packaging", live=True)
 
+    # Install wheel packages separately to avoid redownloading
+    wheels_installer = os.path.join(script_path, "install_wheels.py")
+    if os.path.isfile(wheels_installer):
+        print("Checking wheel packages...")
+        check_run_python(f'"{wheels_installer}"')
+        startup_timer.record("install wheels")
+
     if not requirements_met(requirements_file):
         run_pip(f"install -r \"{requirements_file}\"", "requirements", live=True)
         startup_timer.record("install requirements")

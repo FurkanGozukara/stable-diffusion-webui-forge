@@ -5,6 +5,10 @@ set GIT=
 set VENV_DIR=
 set COMMANDLINE_ARGS=
 
+@REM Use requirements file without direct wheel URLs to prevent redownloading
+@REM Uncomment the following line to use the optimized requirements file
+@REM set REQS_FILE=requirements_versions_no_wheels.txt
+
 @REM Uncomment following code to reference an existing A1111 checkout.
 @REM set A1111_HOME=Your A1111 checkout dir
 @REM
