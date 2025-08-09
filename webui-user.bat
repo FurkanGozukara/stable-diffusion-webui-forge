@@ -3,7 +3,8 @@
 set PYTHON=
 set GIT=
 set VENV_DIR=
-set COMMANDLINE_ARGS=
+@REM Only set COMMANDLINE_ARGS if not already set
+if not defined COMMANDLINE_ARGS set COMMANDLINE_ARGS=
 
 @REM Use requirements file without direct wheel URLs to prevent redownloading
 @REM Uncomment the following line to use the optimized requirements file
@@ -19,4 +20,4 @@ set COMMANDLINE_ARGS=
 @REM  --embeddings-dir %A1111_HOME%/embeddings ^
 @REM  --lora-dir %A1111_HOME%/models/Lora
 
-call webui.bat
+call webui.bat %COMMANDLINE_ARGS%

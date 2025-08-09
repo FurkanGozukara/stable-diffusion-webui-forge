@@ -415,7 +415,7 @@ def prepare_environment():
         check_run_python(f'"{wheels_installer}"')
         startup_timer.record("install wheels")
 
-    if not requirements_met(requirements_file):
+    if not args.skip_requirements and not requirements_met(requirements_file):
         run_pip(f"install -r \"{requirements_file}\"", "requirements", live=True)
         startup_timer.record("install requirements")
 
