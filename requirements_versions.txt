@@ -1,26 +1,26 @@
 
---extra-index-url https://download.pytorch.org/whl/cu128
-torch==2.7.0
+--extra-index-url https://download.pytorch.org/whl/cu129
+torch==2.8.0
 torchvision
 torchaudio
 
-flash_attn @ https://huggingface.co/MonsterMMORPG/SECourses_Premium_Flash_Attention/resolve/main/flash_attn-2.7.4.post1-cp310-cp310-win_amd64.whl ; sys_platform == 'win32'
+flash_attn @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/flash_attn-2.8.2-cp310-cp310-win_amd64.whl ; sys_platform == 'win32'
 
-flash_attn @ https://huggingface.co/MonsterMMORPG/SECourses_Premium_Flash_Attention/resolve/main/flash_attn-2.7.4.post1-cp310-cp310-linux_x86_64.whl ; sys_platform == 'linux'
+flash_attn @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/flash_attn-2.8.2-cp310-cp310-linux_x86_64.whl ; sys_platform == 'linux'
+
+xformers @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/xformers-0.0.33+c159edc0.d20250906-cp39-abi3-win_amd64.whl ; sys_platform == 'win32'
+
+xformers @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/xformers-0.0.33+c159edc0.d20250906-cp39-abi3-linux_x86_64.whl ; sys_platform == 'linux'
 
 # deepspeed @ https://files.pythonhosted.org/packages/3d/65/1a6394f5d6dee851e9ea59e385f6d6428e3bfe36f83c06e0336e14dcfd11/deepspeed-0.16.4-cp310-cp310-win_amd64.whl ; sys_platform == 'win32'
 
 # deepspeed ; sys_platform == 'linux'
 
-xformers @ https://huggingface.co/MonsterMMORPG/SECourses_Premium_Flash_Attention/resolve/main/xformers-0.0.30+3abeaa9e.d20250424-cp310-cp310-win_amd64.whl ; sys_platform == 'win32'
+sageattention @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/sageattention-2.2.0-cp39-abi3-linux_x86_64.whl ; sys_platform == 'linux'
 
-xformers @ https://huggingface.co/MonsterMMORPG/SECourses_Premium_Flash_Attention/resolve/main/xformers-0.0.30+3abeaa9e.d20250427-cp310-cp310-linux_x86_64.whl ; sys_platform == 'linux'
+sageattention @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/sageattention-2.2.0-cp39-abi3-win_amd64.whl ; sys_platform == 'win32'
 
-triton-windows==3.3.0.post19 ; sys_platform == 'win32' # Package name itself indicates Windows
-
-sageattention @ https://github.com/woct0rdho/SageAttention/releases/download/v2.1.1-windows/sageattention-2.1.1+cu128torch2.7.0-cp310-cp310-win_amd64.whl ; sys_platform == 'win32'
-
-sageattention @ https://huggingface.co/MonsterMMORPG/SECourses_Premium_Flash_Attention/resolve/main/sageattention-2.1.1-cp310-cp310-linux_x86_64.whl ; sys_platform == 'linux'
+triton-windows<3.5 ; sys_platform == 'win32'
 
 
 setuptools==69.5.1  # temp fix for compatibility with some old packages
@@ -66,4 +66,5 @@ peft==0.13.2
 pydantic==2.10.6
 huggingface-hub==0.26.2
 ngrok
+
 joblib
