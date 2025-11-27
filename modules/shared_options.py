@@ -182,6 +182,7 @@ options_templates.update(options_section(('sd', "Stable Diffusion", "sd"), {
     "sdxl_clip_l_skip": OptionInfo(False, "Clip skip SDXL", gr.Checkbox).info("Enable Clip skip for the secondary clip model in sdxl. Has no effect on SD 1.5 or SD 2.0/2.1."),
     "CLIP_stop_at_last_layers": OptionInfo(1, "(Managed by Forge)", gr.State, infotext="Clip skip"),
     "upcast_attn": OptionInfo(False, "Upcast cross attention layer to float32"),
+    "auto_upcast_attn": OptionInfo(True, "Automatically enable upcast attention on NaN").info("triggers when a tensor with NaNs is produced in UNet; automatically enables upcast attention and retries; most useful for SD 1.5 models"),
     "randn_source": OptionInfo("GPU", "Random number generator source.", gr.Radio, {"choices": ["GPU", "CPU", "NV"]}, infotext="RNG").info("changes seeds drastically; use CPU to produce the same picture across different videocard vendors; use NV to produce same picture as on NVidia videocards"),
     "tiling": OptionInfo(False, "Tiling", infotext='Tiling').info("produce a tileable picture"),
     "hires_fix_refiner_pass": OptionInfo("second pass", "Hires fix: which pass to enable refiner for", gr.Radio, {"choices": ["first pass", "second pass", "both passes"]}, infotext="Hires refiner"),

@@ -95,7 +95,27 @@ class NansException(Exception):
 
 
 def test_for_nans(x, where):
-    return
+    from modules.shared import cmd_opts, opts
+    
+    if getattr(cmd_opts, 'disable_nan_check', False):
+        return
+
+    if not torch.isnan(x[(0,) * len(x.shape)]):
+        return
+
+    if where == "unet":
+        message = "A tensor with NaNs was produced in Unet."
+        message += " This could be either because there's not enough precision to represent the picture, or because your video card does not support half type. Try enabling the \"Upcast cross attention layer to float32\" option in Settings > Stable Diffusion."
+
+    elif where == "vae":
+        message = "A tensor with NaNs was produced in VAE."
+        message += " This could be because there's not enough precision to represent the picture. Try using --no-half-vae commandline argument."
+    else:
+        message = "A tensor with NaNs was produced."
+
+    message += " Use --disable-nan-check commandline argument to disable this check."
+
+    raise NansException(message)
 
 
 def first_time_calculation():

@@ -987,24 +987,51 @@ def process_images_inner(p: StableDiffusionProcessing) -> Processed:
                 sigmas_backup = p.sd_model.forge_objects.unet.model.predictor.sigmas
                 p.sd_model.forge_objects.unet.model.predictor.set_sigmas(rescale_zero_terminal_snr_sigmas(p.sd_model.forge_objects.unet.model.predictor.sigmas))
 
-            samples_ddim = p.sample(conditioning=p.c, unconditional_conditioning=p.uc, seeds=p.seeds, subseeds=p.subseeds, subseed_strength=p.subseed_strength, prompts=p.prompts)
+            # Sampling with auto-upcast retry on NaN
+            def do_sample():
+                return p.sample(conditioning=p.c, unconditional_conditioning=p.uc, seeds=p.seeds, subseeds=p.subseeds, subseed_strength=p.subseed_strength, prompts=p.prompts)
 
-            for x_sample in samples_ddim:
-                p.latents_after_sampling.append(x_sample)
+            samples_ddim = None
+            nan_retry_attempted = False
 
-            if sigmas_backup is not None:
-                p.sd_model.forge_objects.unet.model.predictor.set_sigmas(sigmas_backup)
+            while samples_ddim is None:
+                try:
+                    samples_ddim = do_sample()
 
-            if p.scripts is not None:
-                ps = scripts.PostSampleArgs(samples_ddim)
-                p.scripts.post_sample(p, ps)
-                samples_ddim = ps.samples
+                    for x_sample in samples_ddim:
+                        p.latents_after_sampling.append(x_sample)
+
+                    if sigmas_backup is not None:
+                        p.sd_model.forge_objects.unet.model.predictor.set_sigmas(sigmas_backup)
+
+                    if p.scripts is not None:
+                        ps = scripts.PostSampleArgs(samples_ddim)
+                        p.scripts.post_sample(p, ps)
+                        samples_ddim = ps.samples
+
+                    if not getattr(samples_ddim, 'already_decoded', False):
+                        devices.test_for_nans(samples_ddim, "unet")
+
+                except devices.NansException as e:
+                    if nan_retry_attempted or not getattr(opts, 'auto_upcast_attn', True) or opts.upcast_attn:
+                        raise e
+
+                    nan_retry_attempted = True
+                    samples_ddim = None
+                    p.latents_after_sampling = []  # Clear latents from failed attempt
+
+                    errors.print_error_explanation(
+                        "A tensor with NaNs was produced in UNet.\n"
+                        "Web UI will now enable 'Upcast cross attention layer to float32' and retry.\n"
+                        "To disable this behavior, disable the 'Automatically enable upcast attention on NaN' setting.\n"
+                        "To always use upcast attention, enable the 'Upcast cross attention layer to float32' setting."
+                    )
+                    opts.upcast_attn = True
 
             if getattr(samples_ddim, 'already_decoded', False):
                 x_samples_ddim = samples_ddim
             else:
-                devices.test_for_nans(samples_ddim, "unet")
-
+                # NaN check for unet already done above during retry loop
                 if opts.sd_vae_decode_method != 'Full':
                     p.extra_generation_params['VAE Decoder'] = opts.sd_vae_decode_method
                 x_samples_ddim = decode_latent_batch(p.sd_model, samples_ddim, target_device=devices.cpu, check_for_nans=True)
