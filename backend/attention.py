@@ -21,16 +21,24 @@ if memory_management.xformers_enabled():
 
 FORCE_UPCAST_ATTENTION_DTYPE = memory_management.force_upcast_attention_dtype()
 
+# Runtime flag for SD 1.5 models that need upcast (set when NaN detected)
+sd15_needs_upcast = False
+
 
 def get_attn_precision(attn_precision=torch.float32):
+    global sd15_needs_upcast
     if args.disable_attention_upcast:
         return None
     if FORCE_UPCAST_ATTENTION_DTYPE is not None:
         return FORCE_UPCAST_ATTENTION_DTYPE
     # Check runtime option for upcast attention (for auto NaN retry)
     try:
-        from modules.shared import opts
+        from modules.shared import opts, sd_model
+        # Global upcast option (applies to all models)
         if getattr(opts, 'upcast_attn', False):
+            return torch.float32
+        # SD 1.5 specific upcast (only when NaN was detected for SD 1.5)
+        if sd15_needs_upcast and sd_model is not None and getattr(sd_model, 'is_sd1', False):
             return torch.float32
     except:
         pass
@@ -287,9 +295,9 @@ def attention_split(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
 def attention_xformers(q, k, v, heads, mask=None, attn_precision=None, skip_reshape=False):
     attn_precision = get_attn_precision(attn_precision)
     
-    # xformers doesn't support upcasting well - fall back to split attention for FP32
+    # xformers doesn't support upcasting - fall back to PyTorch SDPA with FP32 upcast
     if attn_precision == torch.float32:
-        return attention_split(q, k, v, heads, mask, attn_precision, skip_reshape)
+        return attention_pytorch(q, k, v, heads, mask, attn_precision, skip_reshape)
     
     if skip_reshape:
         b, _, _, dim_head = q.shape
@@ -337,10 +345,6 @@ def attention_xformers(q, k, v, heads, mask=None, attn_precision=None, skip_resh
 def attention_pytorch(q, k, v, heads, mask=None, attn_precision=None, skip_reshape=False):
     attn_precision = get_attn_precision(attn_precision)
     
-    # PyTorch SDP doesn't support upcasting well - fall back to split attention for FP32
-    if attn_precision == torch.float32 and q.dtype != torch.float32:
-        return attention_split(q, k, v, heads, mask, attn_precision, skip_reshape)
-    
     if skip_reshape:
         b, _, _, dim_head = q.shape
     else:
@@ -351,7 +355,15 @@ def attention_pytorch(q, k, v, heads, mask=None, attn_precision=None, skip_resha
             (q, k, v),
         )
 
-    out = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False)
+    # Upcast to float32 if needed to prevent NaN (for SD 1.5)
+    if attn_precision == torch.float32 and q.dtype != torch.float32:
+        original_dtype = q.dtype
+        q, k, v = q.float(), k.float(), v.float()
+        out = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False)
+        out = out.to(original_dtype)
+    else:
+        out = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False)
+    
     out = (
         out.transpose(1, 2).reshape(b, -1, heads * dim_head)
     )

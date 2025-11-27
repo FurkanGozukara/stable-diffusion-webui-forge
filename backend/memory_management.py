@@ -965,6 +965,16 @@ def xformers_enabled():
         return False
     if directml_enabled:
         return False
+    # Prefer PyTorch SDPA over xformers for RTX 50 series (Blackwell, SM 10.x) and newer
+    # SDPA is better optimized for these architectures
+    if XFORMERS_IS_AVAILABLE and ENABLE_PYTORCH_ATTENTION:
+        try:
+            if torch.cuda.is_available():
+                device_cap = torch.cuda.get_device_capability()
+                if device_cap[0] >= 10:  # SM 10.x = Blackwell (RTX 50 series)
+                    return False  # Use SDPA instead
+        except:
+            pass
     return XFORMERS_IS_AVAILABLE
 
 

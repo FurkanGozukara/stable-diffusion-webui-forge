@@ -1013,20 +1013,39 @@ def process_images_inner(p: StableDiffusionProcessing) -> Processed:
                         devices.test_for_nans(samples_ddim, "unet")
 
                 except devices.NansException as e:
-                    if nan_retry_attempted or not getattr(opts, 'auto_upcast_attn', True) or opts.upcast_attn:
+                    # Check if this is an SD 1.5 model and auto-upcast is enabled
+                    is_sd1_model = getattr(p.sd_model, 'is_sd1', False)
+                    
+                    if nan_retry_attempted or not getattr(opts, 'auto_upcast_attn', True):
                         raise e
+                    
+                    # For SD 1.5 models, use the specific SD 1.5 upcast flag
+                    # For other models, use the global upcast_attn option
+                    if is_sd1_model:
+                        from backend import attention
+                        if attention.sd15_needs_upcast:
+                            raise e  # Already tried with upcast, still failing
+                        attention.sd15_needs_upcast = True
+                        error_msg = (
+                            "A tensor with NaNs was produced in UNet (SD 1.5 model).\n"
+                            "Web UI will now enable upcast attention for SD 1.5 and retry.\n"
+                            "This fix is applied only to SD 1.5 models and won't affect SDXL performance."
+                        )
+                    else:
+                        if opts.upcast_attn:
+                            raise e  # Already tried with upcast, still failing
+                        opts.upcast_attn = True
+                        error_msg = (
+                            "A tensor with NaNs was produced in UNet.\n"
+                            "Web UI will now enable 'Upcast cross attention layer to float32' and retry.\n"
+                            "To disable this behavior, disable the 'Automatically enable upcast attention on NaN' setting."
+                        )
 
                     nan_retry_attempted = True
                     samples_ddim = None
                     p.latents_after_sampling = []  # Clear latents from failed attempt
 
-                    errors.print_error_explanation(
-                        "A tensor with NaNs was produced in UNet.\n"
-                        "Web UI will now enable 'Upcast cross attention layer to float32' and retry.\n"
-                        "To disable this behavior, disable the 'Automatically enable upcast attention on NaN' setting.\n"
-                        "To always use upcast attention, enable the 'Upcast cross attention layer to float32' setting."
-                    )
-                    opts.upcast_attn = True
+                    errors.print_error_explanation(error_msg)
 
             if getattr(samples_ddim, 'already_decoded', False):
                 x_samples_ddim = samples_ddim
