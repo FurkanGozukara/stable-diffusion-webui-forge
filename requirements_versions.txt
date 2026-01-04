@@ -23,7 +23,7 @@ sageattention @ https://huggingface.co/MonsterMMORPG/Wan_GGUF/resolve/main/sagea
 triton-windows<3.5 ; sys_platform == 'win32'
 
 
-setuptools
+setuptools==69.5.1
 GitPython==3.1.32
 Pillow==9.5.0
 accelerate==0.31.0
@@ -68,4 +68,5 @@ huggingface-hub==0.26.2
 ngrok
 
 joblib
+
 
